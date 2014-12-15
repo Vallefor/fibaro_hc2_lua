@@ -3,12 +3,13 @@
 183 value
 %% globals
 --]]
+fibaro:debug('start scene');
 
 thisScene=87; --ID этой сцены
 
 rowVar='eye_row_bedroom'; --Переменная куда записывается непрерывная активность сенсора движения
 manualVar='bedroom_manual';
-rowToLock=30; -- Количество срабатываний сенсора в комнате, чтоб сработал коридор лок (еслис енсоров несколько, то число должно быть больше)
+rowToLock=2; -- Количество срабатываний сенсора в комнате, чтоб сработал коридор лок (еслис енсоров несколько, то число должно быть больше)
 deviceId= { 183 }; --Сенсоры движения
 
 luxId={ {185,7} }; --Сенсор освещенности и его порог
@@ -41,13 +42,19 @@ if(fibaro:getGlobalValue(manualVar)=='1')
 
 --fibaro:abort();
 
+function getLastMove(deviceId)
+	lastBreach=fibaro:getGlobalValue("eye_"..deviceId);	
+	if(lastBreach=='100') then lastBreach=os.time(); end;
+	return tonumber(lastBreach);
+end
+
 function isCorridorLast(deviceId,outerDeviceId,outerDeviceSecs)
   	fibaro:debug("check: start!");
     lastBreach=fibaro:getGlobalValue("eye_"..outerDeviceId);
   	if(lastBreach=='100') then lastBreach=os.time(); end;
   	check=0;
 	for i = 1, #deviceId do 
-		check=lastBreach-fibaro:getGlobalValue("eye_"..deviceId[i]);
+		check=lastBreach-getLastMove(deviceId[i]);
     	fibaro:debug("check:"..check);
     	if(check>outerDeviceSecs)
       	then
@@ -99,8 +106,8 @@ if(triggerMotion==0 and motion>0) --Если много сенсоров дви�
 	end
 
 
-inRoomMove=fibaro:getGlobalValue("eye_last_"..deviceId[1]);
-outRoomMove=fibaro:getGlobalValue("eye_last_"..outerDeviceId);
+inRoomMove=getLastMove(deviceId[1]);
+outRoomMove=getLastMove(outerDeviceId);
 --fibaro:debug('inRoomMove:'..inRoomMove..' outRoomMove:'..outRoomMove..'  inRoomMove-outRoomMove:'..(inRoomMove-outRoomMove));
 
 
@@ -192,18 +199,32 @@ then
           end
         fibaro:sleep(30*1000)
       end
+    fibaro:debug("exit cycle!");
     else
       fibaro:debug(rowVar.." less than "..rowToLock..' ('..fibaro:getGlobalValue(rowVar)..')');
     end
+  
+  fibaro:debug("exit cycle 2!");
 
 	for i = 1, #shouldBeOff do 
     	if(setVal~='off')
         then
-          fibaro:call(dimmers[i], "turnOff");
+      		fibaro:debug("exit cycle 3! = "..tostring(dimmers[i]).." - "..tostring(i));
+      		if(tostring(dimmers[i])~='nil')
+        	then
+          		fibaro:call(dimmers[i], "turnOff");
+        	end
+      fibaro:debug("exit cycle 3.2!");
         end
+    	fibaro:debug("exit cycle 3.5!");
 	end
+  	
+  	fibaro:debug("exit cycle 4!");
+  	fibaro:debug('start rowVar off');
   	fibaro:sleep(10000);
-  	fibaro:setGlobal(rowVar,0);
+  	fibaro:setGlobal(rowVar,'0');
+  	fibaro:debug('rowVar off');
+  
 end
 
 
