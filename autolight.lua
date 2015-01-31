@@ -9,12 +9,12 @@ thisScene=87; --ID этой сцены
 
 rowVar='eye_row_bedroom'; --Переменная куда записывается непрерывная активность сенсора движения
 manualVar='bedroom_manual';
-rowToLock=2; -- Количество срабатываний сенсора в комнате, чтоб сработал коридор лок (еслис енсоров несколько, то число должно быть больше)
+rowToLock=1; -- Количество срабатываний сенсора в комнате, чтоб сработал коридор лок (еслис енсоров несколько, то число должно быть больше)
 deviceId= { 183 }; --Сенсоры движения
 
-luxId={ {185,7} }; --Сенсор освещенности и его порог
+luxId={ {310,7} }; --Сенсор освещенности и его порог
 outerDeviceId=104; -- Сенсор движения в коридоре
-outerDeviceSecs=-35; --Разница между коридорным и внутренним сенсором, для блокировки выключения
+outerDeviceSecs=-10; --Разница между коридорным и внутренним сенсором, для блокировки выключения
 
 dayVal=1; --Дневное значение включения
 nightVal=20; --Ночное значение включения
@@ -43,14 +43,14 @@ if(fibaro:getGlobalValue(manualVar)=='1')
 --fibaro:abort();
 
 function getLastMove(deviceId)
-	lastBreach=fibaro:getGlobalValue("eye_"..deviceId);	
+	lastBreach=tonumber(fibaro:getGlobalValue("eye_"..deviceId));
 	if(lastBreach=='100') then lastBreach=os.time(); end;
 	return tonumber(lastBreach);
 end
 
 function isCorridorLast(deviceId,outerDeviceId,outerDeviceSecs)
   	fibaro:debug("check: start!");
-    lastBreach=fibaro:getGlobalValue("eye_"..outerDeviceId);
+    lastBreach=tonumber(fibaro:getGlobalValue("eye_"..outerDeviceId));
   	if(lastBreach=='100') then lastBreach=os.time(); end;
   	check=0;
 	for i = 1, #deviceId do 
@@ -64,6 +64,11 @@ function isCorridorLast(deviceId,outerDeviceId,outerDeviceSecs)
 	end
   	fibaro:debug("check: false!");
   	return false;
+end
+
+function rowVarOff()
+	fibaro:setGlobal(rowVar,'0');
+  	fibaro:debug('rowVar off');
 end
 
 luxPass=false;
@@ -160,7 +165,7 @@ then
     
         if(outRoomMove>inRoomMove and tonumber(fibaro:getValue(outerDeviceId, "value"))<1)
   			then
-  				fibaro:call(158, 'sendPush', 'Возможно свет в '..rowVar..' сейчас включать не надо.');
+  				fibaro:call(191, 'sendPush', 'Возможно свет в '..rowVar..' сейчас включать не надо.');
 			end
     
       if(tonumber(fibaro:getGlobalValue("night")) < 1)
@@ -221,10 +226,5 @@ then
   	
   	fibaro:debug("exit cycle 4!");
   	fibaro:debug('start rowVar off');
-  	fibaro:sleep(10000);
-  	fibaro:setGlobal(rowVar,'0');
-  	fibaro:debug('rowVar off');
-  
+  	setTimeout(rowVarOff,10*1000);
 end
-
-
